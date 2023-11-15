@@ -1,0 +1,9 @@
+*.bin
+*.o
+*.d
+*.map
+*.sym
+.lock*
+*.swp
+builddir
+.cache

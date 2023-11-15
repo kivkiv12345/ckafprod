@@ -1,0 +1,3 @@
+[submodule "lib/cjson"]
+	path = lib/cjson
+	url = https://github.com/kivkiv12345/cJSON_meson.git
