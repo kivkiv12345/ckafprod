@@ -11,6 +11,7 @@ ckafprod_sources = [
 	'src/main.c',
 	'src/utils.c',
 	'src/house_worker.c',
+	'src/json_parsing.c',
 ]
 
 cjson_dep = dependency('cjson', fallback : ['cjson', 'cjson_dep'], required: true)

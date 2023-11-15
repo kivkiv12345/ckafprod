@@ -6,6 +6,7 @@
         "unistd.h": "c",
         "pthread.h": "c",
         "stdlib.h": "c",
-        "time.h": "c"
+        "time.h": "c",
+        "cjson.c": "c"
     }
 }

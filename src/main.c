@@ -10,6 +10,7 @@
 
 #include "utils.h"
 #include "house_worker.h"
+#include "json_parsing.h"
 
 #define HOUSES_CLEANUP() \
     cJSON_Delete(houses_json); \
@@ -88,50 +89,17 @@ int main(void) {
     cJSON * house_json = NULL;
     cJSON_ArrayForEach(house_json, houses_json) {
 
-        cJSON *house_id = cJSON_GetObjectItemCaseSensitive(house_json, "id");
-        cJSON *num_adults = cJSON_GetObjectItemCaseSensitive(house_json, "no_adults");
-        cJSON *num_children = cJSON_GetObjectItemCaseSensitive(house_json, "no_children");
-        cJSON *house_size_m2 = cJSON_GetObjectItemCaseSensitive(house_json, "house_size_m2");
-        cJSON *no_electric_cars = cJSON_GetObjectItemCaseSensitive(house_json, "no_electric_cars");
-
-#if 1  /* Check house for valid fields/types */
-        if (!cJSON_IsNumber(house_id)) {
-            HOUSES_CLEANUP();
-            exit(4);
-        }
-
-        if (!cJSON_IsNumber(num_adults)) {
-            HOUSES_CLEANUP();
-            exit(5);
-        }
-
-        if (!cJSON_IsNumber(num_children)) {
-            HOUSES_CLEANUP();
-            exit(6);
-        }
-
-        if (!cJSON_IsNumber(house_size_m2)) {
-            HOUSES_CLEANUP();
-            exit(7);
-        }
-        
-        if (!cJSON_IsNumber(no_electric_cars)) {
-            HOUSES_CLEANUP();
-            exit(8);
-        }
-#endif
-
         assert(i < num_houses);
 
-        /* Start house thread */
-        house_data[i] = (house_data_t){
-            .id = (unsigned int)cJSON_GetNumberValue(house_id),
-            .num_adults = (unsigned int)cJSON_GetNumberValue(num_adults),
-            .num_children = (unsigned int)cJSON_GetNumberValue(num_children),
-            .house_size_m2 = (unsigned int)cJSON_GetNumberValue(house_size_m2),
-            .no_electric_cars = (unsigned int)cJSON_GetNumberValue(no_electric_cars),
-        };
+        int validation_result;
+        if ((validation_result = housejson_parse(house_json, &house_data[i])) != 0) {
+            fprintf(stderr, "House JSON failed validation, result code %d\n", validation_result);
+            HOUSES_CLEANUP();
+            exit(validation_result);
+        }
+
         if ((pthread_create(&house_thread_pool[i], NULL, houseworker_thread, &house_data[i])) != 0) {
+            fprintf(stderr, "Failed to create house thread number %d\n", i);
             HOUSES_CLEANUP();
             exit(9);
         }
