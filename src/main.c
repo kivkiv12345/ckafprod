@@ -18,12 +18,23 @@
 
 #define verbose 1
 
-void sigintHandler(int signal) {
-    printf("Received SIGINT. Stopping house simulations...\n");
+static pthread_mutex_t house_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t house_condition = PTHREAD_COND_INITIALIZER;
 
+static volatile int stop_simulation_flag = 0;
+
+static void sigintHandler(int signal) {
+    pthread_mutex_lock(&house_mutex);
+
+    stop_simulation_flag = 1;
     stop_house_simulations();
 
-    // TODO Kevin: What should be done here???
+    // Signal waiting threads
+    pthread_cond_signal(&house_condition);
+
+    pthread_mutex_unlock(&house_mutex);
+
+    // TODO Kevin: What more should be done here???
 }
 
 int main(void) {
@@ -50,8 +61,7 @@ int main(void) {
     if (houses_json == NULL) {
 
         const char *error_ptr = cJSON_GetErrorPtr();
-        if (error_ptr != NULL)
-        {
+        if (error_ptr != NULL) {
             fprintf(stderr, "Error before: %s\n", error_ptr);
         }
         /* We may use HOUSES_CLEANUP even though (houses_json == NULL) */
@@ -69,10 +79,12 @@ int main(void) {
     pthread_t house_thread_pool[num_houses];
     house_data_t house_data[num_houses];
 
-    if (verbose)
+    if (verbose) {
         printf("Found %d houses\n", num_houses);
+        printf("Press Ctrl+C to interrupt. Setting up...\n");
+    }
 
-    int i = 0;  // TODO Kevin: If we're forking cJSON anyway, we could add a cJSON_ArrayForEachEnumerate();
+    int i = 0;  // TODO Kevin: If we're forking lib/cJSON anyway, we could add a cJSON_ArrayForEachEnumerate();
     cJSON * house_json = NULL;
     cJSON_ArrayForEach(house_json, houses_json) {
 
@@ -125,6 +137,15 @@ int main(void) {
         }
         i++;
     }
+
+    /* TODO Kevin: We should probably support the program ending naturally at some simulated end-date. */
+    /* Run continuously while waiting for user interrupt/SIGINT */
+    pthread_mutex_lock(&house_mutex);
+    while (stop_simulation_flag == 0) {
+        pthread_cond_wait(&house_condition, &house_mutex);
+        printf("Received SIGINT. Stopping house simulations...\n");
+    }
+    pthread_mutex_unlock(&house_mutex);
 
     // Wait for all threads to finish
     for (int i = 0; i < num_houses; ++i) {

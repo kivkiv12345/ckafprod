@@ -8,35 +8,37 @@
 
 #define verbose 1
 
-static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t condition = PTHREAD_COND_INITIALIZER;
 
-static int event_flag = 0;
+static pthread_mutex_t house_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t house_condition = PTHREAD_COND_INITIALIZER;
+
+static volatile int stop_simulation_flag = 0;
+
 
 void stop_house_simulations(void) {
-    pthread_mutex_lock(&mutex);
+    pthread_mutex_lock(&house_mutex);
 
     // Set the event flag
-    event_flag = 1;
+    stop_simulation_flag = 1;
 
     // Signal waiting threads
-    pthread_cond_signal(&condition);
+    pthread_cond_signal(&house_condition);
 
-    pthread_mutex_unlock(&mutex);
+    pthread_mutex_unlock(&house_mutex);
 }
 
 void *houseworker_thread(void *house_data) {
     
     
-    pthread_mutex_lock(&mutex);
+    pthread_mutex_lock(&house_mutex);
 
-    // Use a loop to periodically check the condition without blocking
-    while (event_flag == 0) {
+    // Use a loop to periodically check the house_condition without blocking
+    while (stop_simulation_flag == 0) {
         // Perform some work
         printf("Thread %ld is doing some work while periodically checking for the event...\n", pthread_self());
         // You can add more work here
 
-        // Wait for the condition variable with a timeout of zero
+        // Wait for the house_condition variable with a timeout of zero
         struct timespec timeout;
         clock_gettime(CLOCK_REALTIME, &timeout);
 
@@ -44,10 +46,10 @@ void *houseworker_thread(void *house_data) {
         timeout.tv_sec = 0;
         timeout.tv_nsec = 0;
 
-        int result = pthread_cond_timedwait(&condition, &mutex, &timeout);
+        int result = pthread_cond_timedwait(&house_condition, &house_mutex, &timeout);
 
-        // Check if the condition is met after the wait
-        if (result == 0 && event_flag == 1) {
+        // Check if the house_condition is met after the wait
+        if (result == 0 && stop_simulation_flag == 1) {
             // Event occurred, break out of the loop
             break;
         }
@@ -56,7 +58,7 @@ void *houseworker_thread(void *house_data) {
     // Event occurred, do something
     printf("Event occurred in thread %ld\n", pthread_self());
 
-    pthread_mutex_unlock(&mutex);
+    pthread_mutex_unlock(&house_mutex);
 
     return NULL;
 }
