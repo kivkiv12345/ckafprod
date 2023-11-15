@@ -23,4 +23,4 @@ void stop_house_simulations(void);
  * 
  * @param house_data House data for type house_data_t*
  */
-void *houseworker_thread(void *house_data);
+void *houseworker_thread(void *house_data_arg);

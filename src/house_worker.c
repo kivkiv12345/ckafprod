@@ -27,15 +27,16 @@ void stop_house_simulations(void) {
     pthread_mutex_unlock(&house_mutex);
 }
 
-void *houseworker_thread(void *house_data) {
+void *houseworker_thread(void *house_data_arg) {
     
+    house_data_t * house_data = (house_data_t*)house_data_arg;
     
     pthread_mutex_lock(&house_mutex);
 
     // Use a loop to periodically check the house_condition without blocking
     while (stop_simulation_flag == 0) {
         // Perform some work
-        printf("Thread %ld is doing some work while periodically checking for the event...\n", pthread_self());
+        printf("Thread %ld (for house_id %d) is doing some work while periodically checking for the event...\n", pthread_self(), house_data->id);
         // You can add more work here
 
         // Wait for the house_condition variable with a timeout of zero
@@ -56,7 +57,7 @@ void *houseworker_thread(void *house_data) {
     }
 
     // Event occurred, do something
-    printf("Event occurred in thread %ld\n", pthread_self());
+    printf("Event occurred in thread %ld (for house_id %d)\n", pthread_self(), house_data->id);
 
     pthread_mutex_unlock(&house_mutex);
 
