@@ -2,7 +2,7 @@
 
 #include <cJSON.h>
 
-#include "house_worker.h"
+#include "sim/subscriptions.h"
 
 
 int housejson_parse(const cJSON * house_json, house_data_t * house_data) {

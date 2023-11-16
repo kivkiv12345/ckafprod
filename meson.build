@@ -10,8 +10,9 @@ add_global_arguments('-I../include', language: 'c')
 ckafprod_sources = [
 	'src/main.c',
 	'src/utils.c',
-	'src/house_worker.c',
 	'src/json_parsing.c',
+	'src/sim/house_worker.c',
+	'src/sim/subscriptions.c',
 ]
 
 cjson_dep = dependency('cjson', fallback : ['cjson', 'cjson_dep'], required: true)

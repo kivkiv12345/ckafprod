@@ -1,12 +1,7 @@
 {
     "files.associations": {
-        "cjson.h": "c",
-        "stdio.h": "c",
-        "house_worker.h": "c",
-        "unistd.h": "c",
-        "pthread.h": "c",
-        "stdlib.h": "c",
-        "time.h": "c",
-        "cjson.c": "c"
+		"*.h": "c",
+		"*.c": "c",
+		"*.tcc": "c",
     }
 }

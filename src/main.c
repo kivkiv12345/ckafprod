@@ -9,7 +9,8 @@
 #include <assert.h>
 
 #include "utils.h"
-#include "house_worker.h"
+#include "sim/house_worker.h"
+#include "sim/subscriptions.h"
 #include "json_parsing.h"
 
 #define HOUSES_CLEANUP() \
@@ -111,8 +112,8 @@ int main(void) {
     pthread_mutex_lock(&house_mutex);
     while (stop_simulation_flag == 0) {
         pthread_cond_wait(&house_condition, &house_mutex);
-        printf("Received SIGINT. Stopping house simulations...\n");
     }
+    printf("Received SIGINT. Stopping house simulations...\n");
     pthread_mutex_unlock(&house_mutex);
 
     // Wait for all threads to finish

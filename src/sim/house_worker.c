@@ -6,6 +6,8 @@
 
 #include "house_worker.h"
 
+#include "subscriptions.h"
+
 #define verbose 1
 
 
