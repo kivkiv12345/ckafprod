@@ -23,10 +23,10 @@
 
 #define verbose 1
 
-static pthread_mutex_t house_mutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t house_condition = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t mainthread_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t mainthread_condition = PTHREAD_COND_INITIALIZER;
 
-static volatile int stop_simulation_flag = 0;
+static volatile int stop_program_flag = 0;
 
 static unsigned int parse_seedstr(char * seedstr) {
     /* We trust getopt not to give us an unbounded string */
@@ -41,15 +41,15 @@ static unsigned int parse_seedstr(char * seedstr) {
 }
 
 static void sigintHandler(int signal) {
-    pthread_mutex_lock(&house_mutex);
+    pthread_mutex_lock(&mainthread_mutex);
 
-    stop_simulation_flag = 1;
+    stop_program_flag = 1;
     stop_house_simulations();
 
     // Signal waiting threads
-    pthread_cond_signal(&house_condition);
+    pthread_cond_signal(&mainthread_condition);
 
-    pthread_mutex_unlock(&house_mutex);
+    pthread_mutex_unlock(&mainthread_mutex);
 
     // TODO Kevin: What more should be done here???
 }
@@ -175,14 +175,17 @@ int main(int argc, char **argv) {
         i++;
     }
 
+    /* We have now finished parsing the JSON and house string, so those may be freed here */
+    HOUSES_CLEANUP();
+
     /* TODO Kevin: We should probably support the program ending naturally at some simulated end-date. */
     /* Run continuously while waiting for user interrupt/SIGINT */
-    pthread_mutex_lock(&house_mutex);
-    while (stop_simulation_flag == 0) {
-        pthread_cond_wait(&house_condition, &house_mutex);
+    pthread_mutex_lock(&mainthread_mutex);
+    while (stop_program_flag == 0) {
+        pthread_cond_wait(&mainthread_condition, &mainthread_mutex);
     }
     printf("Received SIGINT. Stopping house simulations...\n");
-    pthread_mutex_unlock(&house_mutex);
+    pthread_mutex_unlock(&mainthread_mutex);
 
     // Wait for all threads to finish
     for (int i = 0; i < num_houses; ++i) {

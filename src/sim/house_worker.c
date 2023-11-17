@@ -46,12 +46,6 @@ void *houseworker_thread(void *house_data_arg) {
     // Use a loop to periodically check the house_condition without blocking
     while (stop_simulation_flag == 0) {
 
-#if 0
-        // Perform some work
-        printf("Thread %ld (for house_id %d) is doing some work while periodically checking for the event...\n", pthread_self(), house_data->id);
-        // You can add more work here
-#endif
-
         simulation_step(house_data, unix_timestamp_seconds);
 
         unix_timestamp_seconds += SIM_STEP_SIZE;

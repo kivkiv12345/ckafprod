@@ -14,6 +14,9 @@ ckafprod_sources = [
 	'src/sim/simulation.c',
 	'src/sim/house_worker.c',
 	# 'src/sim/subscriptions.c',
+
+	# Currently very basic examples of modifers
+	'src/modifiers.c',
 ]
 
 ckafprod_sources += vcs_tag(input: files('src/version.c.in'), output: 'version.c', command: ['git', 'describe', '--always', '--dirty=+'])
@@ -22,7 +25,7 @@ cjson_dep = dependency('cjson', fallback : ['cjson', 'cjson_dep'], required: tru
 
 ckafprod = executable('ckafprod', ckafprod_sources,
 	dependencies : [cjson_dep],
-	link_args : ['-Wl,-Map=csh.map', '-lm', '-Wl,--export-dynamic', '-ldl'],  # -ldl is needed on ARM/raspbarian
+	link_args : ['-Wl,-Map=ckafprod.map', '-lm', '-Wl,--export-dynamic', '-ldl'],  # -ldl is needed on ARM/raspbarian
 	install : true,
 )
 
