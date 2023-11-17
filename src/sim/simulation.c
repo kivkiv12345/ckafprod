@@ -54,7 +54,14 @@ void simulation_step(const house_data_t * const house_data, const time_t unix_ti
     int random = rand_r(&sim_seed);
 
     for (sim_subscription_t * sim_subscription = &__start_sim_subscriptions; sim_subscription >= &__stop_sim_subscriptions; sim_subscription++) {
+
+        /* TODO Kevin: We must assert that every subscription priority only contains 1 type of operator,
+            this is because sections are unordered and therefore doesn't follow the order of operations. */
+        /* TODO Kevin: Our use of sections also complicate the possible future feature that is dynamic linking with expansion modules,
+            I suspect that such an expansion may then be best implemented with a linked list of subscription_t sections. */
+
         
+
     }
     
 #if 0

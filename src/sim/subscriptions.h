@@ -26,6 +26,14 @@ typedef struct month_range_s {
 #define WINTER (month_range_t){.start_month = 11, .end_month = 1}
 #define ALL_YEAR (month_range_t){.start_month = 0, .end_month = 11}
 
+typedef struct day_range_s {
+    unsigned short start_day : 5;
+    unsigned short end_day : 5;
+} day_range_t;
+
+/* We leave it up to the simulation loop to handle months with fewer days than 32 (i.e -1) */
+#define ALL_MONTH (day_range_t){.start_day = 0, .end_day = -1}
+
 typedef struct hour_range_s {
     unsigned short start_hour : 6;
     unsigned short end_hour : 6;
@@ -59,6 +67,7 @@ typedef struct sim_subscription_s {
 
     /* Here we place the criteria for calling the modifier_func */
     month_range_t month_range;
+    day_range_t day_range;
     hour_range_t hour_range;
 
     /* TODO Kevin: If we want to optimize the simulation,
@@ -79,23 +88,28 @@ typedef struct sim_subscription_s {
 
 } sim_subscription_t;
 
+#define SIM_PRIO0 0  // This is the highest priority modifiers, which is likely to be size of the house and people living there
+#define SIM_PRIO1 1
+#define SIM_PRIO2 2  // This is (currently) the lowest priority, which is likely to be multipliers for season.
+
 /**
  * @brief Subscribe the provided modifier to the specified period
  * 
  * This is the primary entry-point for the user to affect the simulation.
  */
-#define SIM_SUBSCRIBE(_month_range, _hour_range, _operation, _modifier_func) \
-	__attribute__((section("sim_subscriptions"))) \
+#define SIM_SUBSCRIBE(_month_range, _day_range, _hour_range, _operation, _modifier_func, _sim_prio) \
+	__attribute__((section("sim_subscriptions" #_sim_prio))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
 	sim_subscription_t subscription##_modifier_func = { \
 		.month_range = _month_range, \
+		.day_range = _day_range, \
 		.hour_range = _hour_range, \
 		.operation = _operation, \
 		.modifier_func = _modifier_func, \
 	}
 
-#if 0  // Playing around with different ways to initialize subscriptions, preferably we wouldn't have to name variables ourselves.
+#if 0  // Playing around with different ways to initialize subscriptions, preferably we wouldn't have to name any variables ourselves.
 // SOME_MACRO((sim_subscription_t){.operation = MULTIPLY, .month_range = ALL_YEAR, .hour_range = ALL_DAY});
 double children_modifier(const house_data_t * const house_data, unsigned long unix_timestamp_sec, sim_subscription_t * sim_subscription) {
     return 1 + (0.1 * house_data->num_children);
