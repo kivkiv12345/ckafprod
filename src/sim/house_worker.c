@@ -5,11 +5,16 @@
 #include <unistd.h>
 
 #include "house_worker.h"
+#include "simulation.h"
 
 #include "subscriptions.h"
 
 #define verbose 1
 
+#define START_TIMESTAMP 1700143038
+
+// Step size in seconds
+#define SIM_STEP_SIZE 3600
 
 static pthread_mutex_t house_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t house_condition = PTHREAD_COND_INITIALIZER;
@@ -35,11 +40,21 @@ void *houseworker_thread(void *house_data_arg) {
     
     pthread_mutex_lock(&house_mutex);
 
+    // const time_t unix_timestamp_seconds = time(NULL);
+    time_t unix_timestamp_seconds = START_TIMESTAMP;
+
     // Use a loop to periodically check the house_condition without blocking
     while (stop_simulation_flag == 0) {
+
+#if 0
         // Perform some work
         printf("Thread %ld (for house_id %d) is doing some work while periodically checking for the event...\n", pthread_self(), house_data->id);
         // You can add more work here
+#endif
+
+        simulation_step(house_data, unix_timestamp_seconds);
+
+        unix_timestamp_seconds += SIM_STEP_SIZE;
 
         // Wait for the house_condition variable with a timeout of zero
         struct timespec timeout;
