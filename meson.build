@@ -16,6 +16,8 @@ ckafprod_sources = [
 	# 'src/sim/subscriptions.c',
 ]
 
+ckafprod_sources += vcs_tag(input: files('src/version.c.in'), output: 'version.c', command: ['git', 'describe', '--always', '--dirty=+'])
+
 cjson_dep = dependency('cjson', fallback : ['cjson', 'cjson_dep'], required: true)
 
 ckafprod = executable('ckafprod', ckafprod_sources,

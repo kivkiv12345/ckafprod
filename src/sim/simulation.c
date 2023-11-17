@@ -10,10 +10,20 @@ void seed_sim(unsigned int seed) {
     user_seed = seed;
 }
 
+/**
+ * @brief Generate a unique seed for the provided house.
+ * 
+ * @param house_data House from which the seed should be generated.
+ * @return unsigned int representing the generated seed
+ */
 static unsigned int house_to_seed(const house_data_t  * house_data) {
     unsigned int sum = 0;
 
-    // Iterate over the memory of the struct
+    /* Iterate over the memory of the struct
+        and generate the seed from all fields. */
+    /* We currently assume that all fields are immutable,
+        should this ever no longer be the case,
+        the .id field should suffice. */
     for (size_t i = 0; i < sizeof(house_data_t); ++i) {
         sum += ((unsigned char *)house_data)[i];
     }
@@ -39,6 +49,7 @@ void simulation_step(const house_data_t * const house_data, const time_t unix_ti
     if (&__start_sim_subscriptions == &__stop_sim_subscriptions && &__start_sim_subscriptions == NULL)
         return;
 
+    /* Any randomization included in the simulation must be kept deterministic */
     unsigned int sim_seed = user_seed + unix_timestamp_seconds + house_to_seed(house_data);
     int random = rand_r(&sim_seed);
 
@@ -47,16 +58,16 @@ void simulation_step(const house_data_t * const house_data, const time_t unix_ti
     }
     
 #if 0
-    static sim_subscription_t* current_displayfunc = &__start_sim_subscriptions;
+    static sim_subscription_t* current_subscription = &__start_sim_subscriptions;
 
     /* TODO Kevin: Do stuff with sim_subscription */
 
-    // Move to the next display function
-    current_displayfunc++;
+    // Move to the next display subscription
+    current_subscription++;
 
     // Check if we've reached the end of the section and wrap around
-    if (current_displayfunc >= &__stop_sim_subscriptions)
-        current_displayfunc = &__start_sim_subscriptions;
+    if (current_subscription >= &__stop_sim_subscriptions)
+        current_subscription = &__start_sim_subscriptions;
 #endif
 
 }

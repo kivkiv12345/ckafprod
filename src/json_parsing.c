@@ -33,6 +33,8 @@ int housejson_parse(const cJSON * house_json, house_data_t * house_data) {
     if (!cJSON_IsNumber(no_electric_cars)) {
         return 8;
     }
+
+    /* TODO Kevin: This is where we would check for unknown fields */
 #endif
 
     /* Start house thread */
