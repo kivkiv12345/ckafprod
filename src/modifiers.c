@@ -2,7 +2,7 @@
 
 #include <math.h>
 
-#define MODIFIER_PRINTS
+#undef MODIFIER_PRINTS
 
 #ifdef MODIFIER_PRINTS
 #include <stdio.h>
@@ -20,9 +20,10 @@ double housesize_modifier(const house_data_t * const house_data, convinient_time
     return house_data->house_size_m2;
 }
 
-SIM_SUBSCRIBE(ALL_YEAR, ALL_MONTH, ALL_DAY, ADD, adult_modifier, SIM_PRIO0);
-SIM_SUBSCRIBE(ALL_YEAR, ALL_MONTH, ALL_DAY, ADD, children_modifier, SIM_PRIO0);
-SIM_SUBSCRIBE(ALL_YEAR, ALL_MONTH, ALL_DAY, ADD, housesize_modifier, SIM_PRIO0);
+SIM_SUBSCRIBE(ALL_YEAR, ALL_MONTH, ALL_DAY, ADD, adult_modifier, POWER, SIM_PRIO0);
+SIM_SUBSCRIBE(ALL_YEAR, ALL_MONTH, ALL_DAY, ADD, children_modifier, POWER, SIM_PRIO0);
+SIM_SUBSCRIBE(ALL_YEAR, ALL_MONTH, ALL_DAY, ADD, housesize_modifier, POWER, SIM_PRIO0);
+SIM_SUBSCRIBE(ALL_YEAR, ALL_MONTH, ALL_DAY, ADD, housesize_modifier, HEAT, SIM_PRIO0);
 
 
 
@@ -47,7 +48,7 @@ double seasonal_modifier(const house_data_t * const house_data, convinient_time_
 
 #ifdef MODIFIER_PRINTS
     static int last_day = 0;
-    if (house_data->id == 1 && last_day != time->timeinfo.tm_yday && (1 || time->timeinfo.tm_mon == 11 || time->timeinfo.tm_mon == 0)) {
+    if (house_data->id == 1 && last_day != time->timeinfo.tm_yday) {
         int num_spaces = 10 * (sinusoidalValue + 1);
         last_day = time->timeinfo.tm_yday;
         printf("year=%d month=%d\tday=%d\tsinusoidal_multiplier=%f\t", 1900+time->timeinfo.tm_year, time->timeinfo.tm_mon, time->timeinfo.tm_yday, sinusoidalValue);
@@ -63,4 +64,5 @@ double seasonal_modifier(const house_data_t * const house_data, convinient_time_
 
 
 
-SIM_SUBSCRIBE(ALL_YEAR, ALL_MONTH, ALL_DAY, MULTIPLY, seasonal_modifier, SIM_PRIO2);
+SIM_SUBSCRIBE(ALL_YEAR, ALL_MONTH, ALL_DAY, MULTIPLY, seasonal_modifier, POWER, SIM_PRIO2);
+SIM_SUBSCRIBE(ALL_YEAR, ALL_MONTH, ALL_DAY, MULTIPLY, seasonal_modifier, HEAT, SIM_PRIO2);

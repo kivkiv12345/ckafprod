@@ -103,8 +103,11 @@ typedef const struct sim_subscription_s {
      */
     double (*modifier_func)(const house_data_t * const house_data, convinient_time_t * time, const struct sim_subscription_s * sim_subscription, unsigned int seed);
 
-    /* priority is also kept as a field so it can be introspected.
-        This also ensures a compilation error when non intergers are passed in SIM_SUBSCRIBE() */
+    /* Metric is kept as field so it can be introspected. */
+    char * metric;
+    /* Priority is also kept as a field so it can be introspected.
+        This could perhaps also be used to ensure a compilation 
+        error when non intergers are passed in SIM_SUBSCRIBE() */
     unsigned short priority : 3;
 
 } sim_subscription_t;
@@ -115,20 +118,25 @@ typedef const struct sim_subscription_s {
 #define SIM_PRIO2 2  // This is (currently) the lowest priority, which is likely to be multipliers for season.
 #define SIM_MINPRIO SIM_PRIO2  // To be used in assert(). Do not use a higher numeric value than this!
 
+#define POWER power
+#define WATER water
+#define HEAT heat
+
 /**
  * @brief Subscribe the provided modifier to the specified period
  * 
  * This is the primary entry-point for the user to affect the simulation.
  */
-#define SIM_SUBSCRIBE(_month_range, _day_range, _hour_range, _operation, _modifier_func, _sim_prio) \
-	__attribute__((section("sim_subscriptions" #_sim_prio))) \
+#define SIM_SUBSCRIBE(_month_range, _day_range, _hour_range, _operation, _modifier_func, _metric, _sim_prio) \
+	__attribute__((section("sim_subscriptions" #_sim_prio #_metric))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
-	sim_subscription_t subscription##_modifier_func = { \
+	sim_subscription_t subscription##_modifier_func##_metric = { \
 		.month_range = _month_range, \
 		.day_range = _day_range, \
 		.hour_range = _hour_range, \
 		.operation = _operation, \
 		.modifier_func = _modifier_func, \
+        .metric = #_metric, \
         .priority = _sim_prio, \
 	}

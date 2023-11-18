@@ -57,9 +57,10 @@ void simulation_step(const house_data_t * const house_data, const time_t unix_ti
     /* Modifiers may want to perform their own further mutations on the seed,
         so they will stand apart from each other. */
     unsigned int sim_seed = user_seed + unix_timestamp_seconds + house_to_seed(house_data);
-    // int random = rand_r(&sim_seed);
 
-    double usage_sum = 0;
+    double power_usage_sum = 0;
+    double water_usage_sum = 0;
+    double heat_usage_sum = 0;
 
     /**
      * @brief Applies modifiers that are subscribed to the current simulation time.
@@ -69,7 +70,7 @@ void simulation_step(const house_data_t * const house_data, const time_t unix_ti
      * 
      * @param sim_subscription Current subscription in the for-loop in SUBSCRIPTION_FOREACH_PRIO().
      */
-    void inline apply_valid_modifier(sim_subscription_t * sim_subscription) {
+    void inline apply_valid_modifier(sim_subscription_t * sim_subscription, double * _sumptr) {
 
         /* This subscription includes a year-change */
         if (sim_subscription->month_range.start_month > sim_subscription->month_range.end_month) {
@@ -87,21 +88,21 @@ void simulation_step(const house_data_t * const house_data, const time_t unix_ti
             return;  // We are not subscribed to the current hour.
         
         if (sim_subscription->operation == ADD) {
-            usage_sum += sim_subscription->modifier_func(house_data, &time, sim_subscription, sim_seed);
+            *_sumptr += sim_subscription->modifier_func(house_data, &time, sim_subscription, sim_seed);
         } else if (sim_subscription->operation == MULTIPLY) {
-            usage_sum *= sim_subscription->modifier_func(house_data, &time, sim_subscription, sim_seed);
+            *_sumptr *= sim_subscription->modifier_func(house_data, &time, sim_subscription, sim_seed);
         } else {
             /* TODO Kevin: Invalid operator, error handling goes here */
         }
     }
 
-#define SUBSCRIPTION_FOREACH_PRIO(_prio) \
+#define SUBSCRIPTION_FOREACH_PRIO(_prio, _metric, _sumbuf) \
     /** \
 	 * GNU Linker symbols. These will be autogenerate by GCC when using \
 	 * __attribute__((section("sim_subscriptions")) \
 	 */ \
-	__attribute__((weak)) extern sim_subscription_t __start_sim_subscriptions##_prio; \
-	__attribute__((weak)) extern sim_subscription_t __stop_sim_subscriptions##_prio; \
+	__attribute__((weak)) extern sim_subscription_t __start_sim_subscriptions##_prio##_metric; \
+	__attribute__((weak)) extern sim_subscription_t __stop_sim_subscriptions##_prio##_metric; \
  \
     /* TODO Kevin: We must assert that every subscription priority only contains 1 type of operator, \
             this is because sections are unordered and therefore doesn't follow the order of operations. */ \
@@ -110,20 +111,30 @@ void simulation_step(const house_data_t * const house_data, const time_t unix_ti
  \
     /* For some reason this 'if' is needed, even though the for-loop condition should be sufficient. \
         It can't be replaced with a guard clause, as we must allow the other priorities to run.*/ \
-    if (&__start_sim_subscriptions##_prio != &__stop_sim_subscriptions##_prio && &__start_sim_subscriptions##_prio != NULL) { \
+    if (&__start_sim_subscriptions##_prio##_metric != &__stop_sim_subscriptions##_prio##_metric && &__start_sim_subscriptions##_prio##_metric != NULL) { \
         /* printf("UUU %d %p %p\n", _prio, &__start_sim_subscriptions##_prio, &__stop_sim_subscriptions##_prio); */ \
-        for (sim_subscription_t * sim_subscription = &__start_sim_subscriptions##_prio; sim_subscription < &__stop_sim_subscriptions##_prio; sim_subscription++) { \
-            apply_valid_modifier(sim_subscription); \
+        for (sim_subscription_t * sim_subscription = &__start_sim_subscriptions##_prio##_metric; sim_subscription < &__stop_sim_subscriptions##_prio##_metric; sim_subscription++) { \
+            apply_valid_modifier(sim_subscription, &_sumbuf); \
         } \
     }
     
     /* NOTE: Any priorities added to subscriptions.h must also be added here. */
     /* NOTE: Currently our sections are named as sim_subscriptionsSIM_PRIO0 when using SIM_SUBSCRIBE() (instead of sim_subscriptions0),
         It is therfore important that SUBSCRIPTION_FOREACH_PRIO() is used with the SIM_PRIO* #defines. */
-    SUBSCRIPTION_FOREACH_PRIO(SIM_PRIO0);
-    SUBSCRIPTION_FOREACH_PRIO(SIM_PRIO1);
-    SUBSCRIPTION_FOREACH_PRIO(SIM_PRIO2);
+    SUBSCRIPTION_FOREACH_PRIO(SIM_PRIO0, POWER, power_usage_sum);
+    SUBSCRIPTION_FOREACH_PRIO(SIM_PRIO1, POWER, power_usage_sum);
+    SUBSCRIPTION_FOREACH_PRIO(SIM_PRIO2, POWER, power_usage_sum);
+    SUBSCRIPTION_FOREACH_PRIO(SIM_PRIO0, WATER, water_usage_sum);
+    SUBSCRIPTION_FOREACH_PRIO(SIM_PRIO1, WATER, water_usage_sum);
+    SUBSCRIPTION_FOREACH_PRIO(SIM_PRIO2, WATER, water_usage_sum);
+    SUBSCRIPTION_FOREACH_PRIO(SIM_PRIO0, HEAT, heat_usage_sum);
+    SUBSCRIPTION_FOREACH_PRIO(SIM_PRIO1, HEAT, heat_usage_sum);
+    SUBSCRIPTION_FOREACH_PRIO(SIM_PRIO2, HEAT, heat_usage_sum);
 
-    // printf("month=%d \tHouse->id=%d\tusage_sum=%f\ttimestamp=%ld\trandom=%d\n", month, house_data->id, usage_sum, unix_timestamp_seconds, random);
+    static int last_day = 0;
+    if (house_data->id == 1 && last_day != time.timeinfo.tm_yday) {
+        last_day = time.timeinfo.tm_yday;
+        printf("month=%d \tpower_sum=%f\theat_sum=%f\n", month, power_usage_sum, heat_usage_sum);
+    }
 
 }
