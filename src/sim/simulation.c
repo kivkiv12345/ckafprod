@@ -74,7 +74,6 @@ void simulation_step(const house_data_t * const house_data, const time_t unix_ti
             if (sim_subscription->month_range.end_month < month && sim_subscription->month_range.start_month > month)
                 return;  // We are not subscribed to the current month.
         } else {
-            /* TODO Kevin: There's probably a bug here */
             if (sim_subscription->month_range.start_month > month || sim_subscription->month_range.end_month < month)
                 return;  // We are not subscribed to the current month.
         }
