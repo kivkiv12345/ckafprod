@@ -42,9 +42,12 @@ void simulation_step(const house_data_t * const house_data, const time_t unix_ti
         .unix_timestamp_sec = unix_timestamp_seconds,
         /* localtime_r() is used to initialize the 'time' struct,
             so we must consider it okay to cast away the ‘const’ qualifier. */
+        /* I'm quite surprised &time can be an argument while initializing &time */
         .timeinfo = *localtime_r(&unix_timestamp_seconds, (struct tm *)&time.timeinfo),
     };
-    int month = time.timeinfo.tm_mon; // tm_mon is zero-based
+    int month = time.timeinfo.tm_mon; // tm_mon is zero-indexed
+    int day = time.timeinfo.tm_mday - 1; // tm_mday is one-indexed
+    int hour = time.timeinfo.tm_hour; // tm_hour is zero-indexed
 
     /* Any randomization included in the simulation must be kept deterministic,
         as this allows us to keep the output consistent when rerunning the simulation. */
@@ -65,6 +68,23 @@ void simulation_step(const house_data_t * const house_data, const time_t unix_ti
      * @param sim_subscription Current subscription in the for-loop in SUBSCRIPTION_FOREACH_PRIO().
      */
     void inline apply_valid_modifier(sim_subscription_t * sim_subscription) {
+
+        /* This subscription includes a year-change */
+        if (sim_subscription->month_range.start_month > sim_subscription->month_range.end_month) {
+            if (sim_subscription->month_range.end_month < month && sim_subscription->month_range.start_month > month)
+                return;  // We are not subscribed to the current month.
+        } else {
+            /* TODO Kevin: There's probably a bug here */
+            if (sim_subscription->month_range.start_month > month || sim_subscription->month_range.end_month < month)
+                return;  // We are not subscribed to the current month.
+        }
+
+        if (sim_subscription->day_range.start_day > day || sim_subscription->day_range.end_day < day)
+            return;  // We are not subscribed to the current day.
+
+        if (sim_subscription->hour_range.start_hour > hour || sim_subscription->hour_range.end_hour < hour)
+            return;  // We are not subscribed to the current hour.
+        
         if (sim_subscription->operation == ADD) {
             usage_sum += sim_subscription->modifier_func(house_data, &time, sim_subscription);
         } else if (sim_subscription->operation == MULTIPLY) {
@@ -103,6 +123,6 @@ void simulation_step(const house_data_t * const house_data, const time_t unix_ti
     SUBSCRIPTION_FOREACH_PRIO(SIM_PRIO1);
     SUBSCRIPTION_FOREACH_PRIO(SIM_PRIO2);
 
-    printf("month=%d \tHouse->id=%d\tusage_sum=%f\ttimestamp=%ld\trandom=%d\n", month, house_data->id, usage_sum, unix_timestamp_seconds, random);
+    // printf("month=%d \tHouse->id=%d\tusage_sum=%f\ttimestamp=%ld\trandom=%d\n", month, house_data->id, usage_sum, unix_timestamp_seconds, random);
 
 }

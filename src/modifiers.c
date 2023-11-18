@@ -27,7 +27,7 @@ double spring_modifier(const house_data_t * const house_data, convinient_time_t 
     return 1;
 }
 
-double summmer_modifier(const house_data_t * const house_data, convinient_time_t  * time, sim_subscription_t * sim_subscription) {
+double summer_modifier(const house_data_t * const house_data, convinient_time_t  * time, sim_subscription_t * sim_subscription) {
     return 0.7;
 }
 
@@ -36,7 +36,7 @@ double autumn_modifier(const house_data_t * const house_data, convinient_time_t 
 }
 
 
-SIM_SUBSCRIBE(ALL_YEAR, ALL_MONTH, ALL_DAY, MULTIPLY, winter_modifier, SIM_PRIO2);
-SIM_SUBSCRIBE(ALL_YEAR, ALL_MONTH, ALL_DAY, MULTIPLY, spring_modifier, SIM_PRIO2);
-SIM_SUBSCRIBE(ALL_YEAR, ALL_MONTH, ALL_DAY, MULTIPLY, summmer_modifier, SIM_PRIO2);
-SIM_SUBSCRIBE(ALL_YEAR, ALL_MONTH, ALL_DAY, MULTIPLY, autumn_modifier, SIM_PRIO2);
+SIM_SUBSCRIBE(WINTER, ALL_MONTH, ALL_DAY, MULTIPLY, winter_modifier, SIM_PRIO2);
+SIM_SUBSCRIBE(SPRING, ALL_MONTH, ALL_DAY, MULTIPLY, spring_modifier, SIM_PRIO2);
+SIM_SUBSCRIBE(SUMMER, ALL_MONTH, ALL_DAY, MULTIPLY, summer_modifier, SIM_PRIO2);
+SIM_SUBSCRIBE(AUTUMN, ALL_MONTH, ALL_DAY, MULTIPLY, autumn_modifier, SIM_PRIO2);
