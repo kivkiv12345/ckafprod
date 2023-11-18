@@ -54,11 +54,25 @@ void simulation_step(const house_data_t * const house_data, const time_t unix_ti
     unsigned int sim_seed = user_seed + unix_timestamp_seconds + house_to_seed(house_data);
     int random = rand_r(&sim_seed);
 
-    // void apply_valid_modifier(const house_data_t * const house_data, const time_t unix_timestamp_seconds, sim_subscription_t * sim_subscription) {
-    //     // printf("AAA %ld\n", unix_timestamp_seconds);
-    // }
-
     double usage_sum = 0;
+
+    /**
+     * @brief Applies modifiers that are subscribed to the current simulation time.
+     * 
+     * Most of the would-be arguments to this function are found in the scope of the outer wrapping function,
+     * thanks to the magic of GCC.
+     * 
+     * @param sim_subscription Current subscription in the for-loop in SUBSCRIPTION_FOREACH_PRIO().
+     */
+    void inline apply_valid_modifier(sim_subscription_t * sim_subscription) {
+        if (sim_subscription->operation == ADD) {
+            usage_sum += sim_subscription->modifier_func(house_data, &time, sim_subscription);
+        } else if (sim_subscription->operation == MULTIPLY) {
+            usage_sum *= sim_subscription->modifier_func(house_data, &time, sim_subscription);
+        } else {
+            /* TODO Kevin: Invalid operator, error handling goes here */
+        }
+    }
 
 #define SUBSCRIPTION_FOREACH_PRIO(_prio) \
     /** \
@@ -78,14 +92,7 @@ void simulation_step(const house_data_t * const house_data, const time_t unix_ti
     if (&__start_sim_subscriptions##_prio != &__stop_sim_subscriptions##_prio && &__start_sim_subscriptions##_prio != NULL) { \
         /* printf("UUU %d %p %p\n", _prio, &__start_sim_subscriptions##_prio, &__stop_sim_subscriptions##_prio); */ \
         for (sim_subscription_t * sim_subscription = &__start_sim_subscriptions##_prio; sim_subscription < &__stop_sim_subscriptions##_prio; sim_subscription++) { \
-            /* apply_valid_modifier(house_data, unix_timestamp_seconds, sim_subscription); */ \
-            if (sim_subscription->operation == ADD) { \
-                usage_sum += sim_subscription->modifier_func(house_data, &time, sim_subscription); \
-            } else if (sim_subscription->operation == MULTIPLY) { \
-                usage_sum *= sim_subscription->modifier_func(house_data, &time, sim_subscription); \
-            } else { \
-                /* TODO Kevin: Invalid operator, error handling goes here */ \
-            } \
+            apply_valid_modifier(sim_subscription); \
         } \
     }
     
