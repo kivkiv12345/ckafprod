@@ -1,6 +1,6 @@
-/* Currently some very basic examples of modifiers. */
-
 #include "sim/subscriptions.h"
+
+#include <math.h>
 
 #define MODIFIER_PRINTS
 
@@ -26,44 +26,41 @@ SIM_SUBSCRIBE(ALL_YEAR, ALL_MONTH, ALL_DAY, ADD, housesize_modifier, SIM_PRIO0);
 
 
 
-double winter_modifier(const house_data_t * const house_data, convinient_time_t  * time, sim_subscription_t * sim_subscription, unsigned int seed) {
+double seasonal_modifier(const house_data_t * const house_data, convinient_time_t  * time, sim_subscription_t * sim_subscription, unsigned int seed) {
+
+    // Scaling factor to control the amplitude of the sinusoidal wave
+    double amplitude = 0.5;
+
+    // Frequency of the sinusoidal wave (one cycle per year)
+    /* By some mathematical magic a frequency of 57.823 makes the wave repeat once a year,
+        I have no idea how this value correlates with 365. */
+    double frequency = 57.823;
+
+    // Phase shift to control the starting point of the wave (peak or low)
+    /* frequency * -1.6 makes winter the peak, +1.6 makes it the low. */
+    double phaseShift = frequency * -1.6;
+
+    double verticalShift = 1;
+
+    // Calculate the sinusoidal value
+    double sinusoidalValue = amplitude * sin((time->timeinfo.tm_yday - phaseShift)/frequency) + verticalShift;
+
 #ifdef MODIFIER_PRINTS
     static int last_day = 0;
-    if (house_data->id == 1 && last_day != time->timeinfo.tm_mday)
-        printf("Winter year=%d month=%d\tday=%d\n", 1900+time->timeinfo.tm_year, time->timeinfo.tm_mon, (last_day = time->timeinfo.tm_mday));
+    if (house_data->id == 1 && last_day != time->timeinfo.tm_yday && (1 || time->timeinfo.tm_mon == 11 || time->timeinfo.tm_mon == 0)) {
+        int num_spaces = 10 * (sinusoidalValue + 1);
+        last_day = time->timeinfo.tm_yday;
+        printf("year=%d month=%d\tday=%d\tsinusoidal_multiplier=%f\t", 1900+time->timeinfo.tm_year, time->timeinfo.tm_mon, time->timeinfo.tm_yday, sinusoidalValue);
+        for (size_t i = 0; i < num_spaces; i++) {
+            printf(" ");
+        }
+        printf(".\n");
+        
+    }
 #endif
-    return 1.5;
-}
-
-double spring_modifier(const house_data_t * const house_data, convinient_time_t  * time, sim_subscription_t * sim_subscription, unsigned int seed) {
-#ifdef MODIFIER_PRINTS
-    static int last_day = 0;
-    if (house_data->id == 1 && last_day != time->timeinfo.tm_mday)
-        printf("Spring year=%d month=%d\tday=%d\n", 1900+time->timeinfo.tm_year, time->timeinfo.tm_mon, (last_day = time->timeinfo.tm_mday));
-#endif
-    return 1;
-}
-
-double summer_modifier(const house_data_t * const house_data, convinient_time_t  * time, sim_subscription_t * sim_subscription, unsigned int seed) {
-#ifdef MODIFIER_PRINTS
-    static int last_day = 0;
-    if (house_data->id == 1 && last_day != time->timeinfo.tm_mday)
-        printf("Summer year=%d month=%d\tday=%d\n", 1900+time->timeinfo.tm_year, time->timeinfo.tm_mon, (last_day = time->timeinfo.tm_mday));
-#endif
-    return 0.7;
-}
-
-double autumn_modifier(const house_data_t * const house_data, convinient_time_t  * time, sim_subscription_t * sim_subscription, unsigned int seed) {
-#ifdef MODIFIER_PRINTS
-    static int last_day = 0;
-    if (house_data->id == 1 && last_day != time->timeinfo.tm_mday)
-        printf("Autumn year=%d month=%d\tday=%d\n", 1900+time->timeinfo.tm_year, time->timeinfo.tm_mon, (last_day = time->timeinfo.tm_mday));
-#endif
-    return 1.2;
+    return sinusoidalValue;
 }
 
 
-SIM_SUBSCRIBE(WINTER, ALL_MONTH, ALL_DAY, MULTIPLY, winter_modifier, SIM_PRIO2);
-SIM_SUBSCRIBE(SPRING, ALL_MONTH, ALL_DAY, MULTIPLY, spring_modifier, SIM_PRIO2);
-SIM_SUBSCRIBE(SUMMER, ALL_MONTH, ALL_DAY, MULTIPLY, summer_modifier, SIM_PRIO2);
-SIM_SUBSCRIBE(AUTUMN, ALL_MONTH, ALL_DAY, MULTIPLY, autumn_modifier, SIM_PRIO2);
+
+SIM_SUBSCRIBE(ALL_YEAR, ALL_MONTH, ALL_DAY, MULTIPLY, seasonal_modifier, SIM_PRIO2);

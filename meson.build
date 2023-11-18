@@ -13,9 +13,7 @@ ckafprod_sources = [
 	'src/json_parsing.c',
 	'src/sim/simulation.c',
 	'src/sim/house_worker.c',
-	# 'src/sim/subscriptions.c',
 
-	# Currently very basic examples of modifers
 	'src/modifiers.c',
 ]
 

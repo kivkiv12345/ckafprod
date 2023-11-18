@@ -11,7 +11,8 @@
 
 #define verbose 1
 
-#define START_TIMESTAMP 1700143038
+// #define START_TIMESTAMP 1700143038  // Current'ish date
+#define START_TIMESTAMP 1704125447  // Start of 2024
 
 // Step size in seconds
 #define SIM_STEP_SIZE 3600
