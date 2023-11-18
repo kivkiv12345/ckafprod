@@ -34,8 +34,17 @@ static unsigned int house_to_seed(const house_data_t  * house_data) {
 
 void simulation_step(const house_data_t * const house_data, const time_t unix_timestamp_seconds) {
     
-    struct tm* timeinfo = localtime(&unix_timestamp_seconds);
-    int month = timeinfo->tm_mon; // tm_mon is zero-based
+    // struct tm* timeinfo = localtime(&unix_timestamp_seconds);
+
+    struct tm *localtime_r(const time_t *timep, struct tm *result);
+
+    convinient_time_t time = {
+        .unix_timestamp_sec = unix_timestamp_seconds,
+        /* localtime_r() is used to initialize the 'time' struct,
+            so we must consider it okay to cast away the ‘const’ qualifier. */
+        .timeinfo = *localtime_r(&unix_timestamp_seconds, (struct tm *)&time.timeinfo),
+    };
+    int month = time.timeinfo.tm_mon; // tm_mon is zero-based
 
     /* Any randomization included in the simulation must be kept deterministic,
         as this allows us to keep the output consistent when rerunning the simulation. */
@@ -71,9 +80,9 @@ void simulation_step(const house_data_t * const house_data, const time_t unix_ti
         for (sim_subscription_t * sim_subscription = &__start_sim_subscriptions##_prio; sim_subscription < &__stop_sim_subscriptions##_prio; sim_subscription++) { \
             /* apply_valid_modifier(house_data, unix_timestamp_seconds, sim_subscription); */ \
             if (sim_subscription->operation == ADD) { \
-                usage_sum += sim_subscription->modifier_func(house_data, unix_timestamp_seconds, sim_subscription); \
+                usage_sum += sim_subscription->modifier_func(house_data, &time, sim_subscription); \
             } else if (sim_subscription->operation == MULTIPLY) { \
-                usage_sum *= sim_subscription->modifier_func(house_data, unix_timestamp_seconds, sim_subscription); \
+                usage_sum *= sim_subscription->modifier_func(house_data, &time, sim_subscription); \
             } else { \
                 /* TODO Kevin: Invalid operator, error handling goes here */ \
             } \
@@ -87,6 +96,6 @@ void simulation_step(const house_data_t * const house_data, const time_t unix_ti
     SUBSCRIPTION_FOREACH_PRIO(SIM_PRIO1);
     SUBSCRIPTION_FOREACH_PRIO(SIM_PRIO2);
 
-    printf("House->id=%d usage_sum=%f unix_timestamp=%ld\n", house_data->id, usage_sum, unix_timestamp_seconds);
+    printf("month=%d \tHouse->id=%d\tusage_sum=%f\ttimestamp=%ld\trandom=%d\n", month, house_data->id, usage_sum, unix_timestamp_seconds, random);
 
 }

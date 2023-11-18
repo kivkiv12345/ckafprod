@@ -1,6 +1,18 @@
 #pragma once
 
-#define NUM_PRIORITIES 2
+#include <time.h>
+
+/**
+ * @brief Stores both a UNIX timestamp and a 'datetime' representing the same timestamp.
+ * 
+ * We are generating both anyway, this is just a convenient way to pass both to modifiers,
+ *  so they can pick which one they want.
+ */
+typedef const struct convinient_time_s {
+    const time_t unix_timestamp_sec;
+    const struct tm timeinfo;
+} convinient_time_t;
+
 
 typedef struct house_data_s {
     unsigned int id;
@@ -79,10 +91,6 @@ typedef const struct sim_subscription_s {
     //double value_applied;
     operation_e operation;
 
-    /* priority is also kept as a field so it can be introspected.
-        This also ensures a compilation error when non intergers are passed in SIM_SUBSCRIBE() */
-    unsigned short priority : 3;
-
     /**
      * @brief Modifier function called when the simulation falls within the subscribed period.
      * 
@@ -92,7 +100,11 @@ typedef const struct sim_subscription_s {
      * 
      * @return a double representing the amount by which the utility usage should be modifed, operation is determined by sim_subscription_t.operation.
      */
-    double (*modifier_func)(const house_data_t * const house_data, unsigned long unix_timestamp_sec, const struct sim_subscription_s * sim_subscription);
+    double (*modifier_func)(const house_data_t * const house_data, convinient_time_t * time, const struct sim_subscription_s * sim_subscription);
+
+    /* priority is also kept as a field so it can be introspected.
+        This also ensures a compilation error when non intergers are passed in SIM_SUBSCRIBE() */
+    unsigned short priority : 3;
 
 } sim_subscription_t;
 
@@ -107,7 +119,7 @@ typedef const struct sim_subscription_s {
  * 
  * This is the primary entry-point for the user to affect the simulation.
  */
-#define SIM_SUBSCRIBE(_month_range, _day_range, _hour_range, _operation, _sim_prio, _modifier_func) \
+#define SIM_SUBSCRIBE(_month_range, _day_range, _hour_range, _operation, _modifier_func, _sim_prio) \
 	__attribute__((section("sim_subscriptions" #_sim_prio))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
@@ -116,8 +128,8 @@ typedef const struct sim_subscription_s {
 		.day_range = _day_range, \
 		.hour_range = _hour_range, \
 		.operation = _operation, \
-        .priority = _sim_prio, \
 		.modifier_func = _modifier_func, \
+        .priority = _sim_prio, \
 	}
 
 #if 0  // Playing around with different ways to initialize subscriptions, preferably we wouldn't have to name any variables ourselves.
