@@ -14,12 +14,29 @@ double housesize_modifier(const house_data_t * const house_data, convinient_time
     return house_data->house_size_m2;
 }
 
-double season_modifier(const house_data_t * const house_data, convinient_time_t  * time, sim_subscription_t * sim_subscription) {
-    /* TODO Kevin: Do we want to convert from UNIX timestamp in our modifier functions? */
-    return 1;
-}
-
 SIM_SUBSCRIBE(ALL_YEAR, ALL_MONTH, ALL_DAY, ADD, adult_modifier, SIM_PRIO0);
 SIM_SUBSCRIBE(ALL_YEAR, ALL_MONTH, ALL_DAY, ADD, children_modifier, SIM_PRIO0);
 SIM_SUBSCRIBE(ALL_YEAR, ALL_MONTH, ALL_DAY, ADD, housesize_modifier, SIM_PRIO0);
-SIM_SUBSCRIBE(ALL_YEAR, ALL_MONTH, ALL_DAY, MULTIPLY, season_modifier, SIM_PRIO2);
+
+
+double winter_modifier(const house_data_t * const house_data, convinient_time_t  * time, sim_subscription_t * sim_subscription) {
+    return 1.5;
+}
+
+double spring_modifier(const house_data_t * const house_data, convinient_time_t  * time, sim_subscription_t * sim_subscription) {
+    return 1;
+}
+
+double summmer_modifier(const house_data_t * const house_data, convinient_time_t  * time, sim_subscription_t * sim_subscription) {
+    return 0.7;
+}
+
+double autumn_modifier(const house_data_t * const house_data, convinient_time_t  * time, sim_subscription_t * sim_subscription) {
+    return 1.2;
+}
+
+
+SIM_SUBSCRIBE(ALL_YEAR, ALL_MONTH, ALL_DAY, MULTIPLY, winter_modifier, SIM_PRIO2);
+SIM_SUBSCRIBE(ALL_YEAR, ALL_MONTH, ALL_DAY, MULTIPLY, spring_modifier, SIM_PRIO2);
+SIM_SUBSCRIBE(ALL_YEAR, ALL_MONTH, ALL_DAY, MULTIPLY, summmer_modifier, SIM_PRIO2);
+SIM_SUBSCRIBE(ALL_YEAR, ALL_MONTH, ALL_DAY, MULTIPLY, autumn_modifier, SIM_PRIO2);
