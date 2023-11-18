@@ -38,10 +38,15 @@ void *houseworker_thread(void *house_data_arg) {
     
     house_data_t * house_data = (house_data_t*)house_data_arg;
     
+#undef THREADSAFE_STOPCHECK
+
+#ifdef THREADSAFE_STOPCHECK
     pthread_mutex_lock(&house_mutex);
+#endif
 
     // const time_t unix_timestamp_seconds = time(NULL);
     time_t unix_timestamp_seconds = START_TIMESTAMP;
+
 
     // Use a loop to periodically check the house_condition without blocking
     while (stop_simulation_flag == 0) {
@@ -50,6 +55,7 @@ void *houseworker_thread(void *house_data_arg) {
 
         unix_timestamp_seconds += SIM_STEP_SIZE;
 
+#ifdef THREADSAFE_STOPCHECK
         // Wait for the house_condition variable with a timeout of zero
         struct timespec timeout;
         clock_gettime(CLOCK_REALTIME, &timeout);
@@ -61,16 +67,21 @@ void *houseworker_thread(void *house_data_arg) {
         int result = pthread_cond_timedwait(&house_condition, &house_mutex, &timeout);
 
         // Check if the house_condition is met after the wait
+        /* TODO Kevin: Not sure if its okay to skip pthread_cond_timedwait() when only the main thread changes stop_simulation_flag,
+            but the program is drastically faster if when it's skipped. */
         if (result == 0 && stop_simulation_flag == 1) {
             // Event occurred, break out of the loop
             break;
         }
+#endif
     }
 
     // Event occurred, do something
-    printf("Event occurred in thread %ld (for house_id %d)\n", pthread_self(), house_data->id);
+    // printf("Event occurred in thread %ld (for house_id %d)\n", pthread_self(), house_data->id);
 
+#ifdef THREADSAFE_STOPCHECK
     pthread_mutex_unlock(&house_mutex);
+#endif
 
     return NULL;
 }
