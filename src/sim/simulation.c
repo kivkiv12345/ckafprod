@@ -22,7 +22,7 @@ static unsigned int house_to_seed(const house_data_t  * house_data) {
 
     /* Iterate over the memory of the struct
         and generate the seed from all fields. */
-    /* We currently assume that all fields are immutable,
+    /* NOTE: We currently assume that all fields are immutable,
         should this ever no longer be the case,
         the .id field should suffice. */
     for (size_t i = 0; i < sizeof(house_data_t); ++i) {
@@ -54,8 +54,10 @@ void simulation_step(const house_data_t * const house_data, const time_t unix_ti
     /* Using (user_seed + unix_timestamp_seconds + house_to_seed(house_data)) for the seed
         should allow us to run multiple threads for the same house, but with different start times.
         If any thread(s) were to catch up to the start time of any other thread, it should generate the same output. */
+    /* Modifiers may want to perform their own further mutations on the seed,
+        so they will stand apart from each other. */
     unsigned int sim_seed = user_seed + unix_timestamp_seconds + house_to_seed(house_data);
-    int random = rand_r(&sim_seed);
+    // int random = rand_r(&sim_seed);
 
     double usage_sum = 0;
 
@@ -85,9 +87,9 @@ void simulation_step(const house_data_t * const house_data, const time_t unix_ti
             return;  // We are not subscribed to the current hour.
         
         if (sim_subscription->operation == ADD) {
-            usage_sum += sim_subscription->modifier_func(house_data, &time, sim_subscription);
+            usage_sum += sim_subscription->modifier_func(house_data, &time, sim_subscription, sim_seed);
         } else if (sim_subscription->operation == MULTIPLY) {
-            usage_sum *= sim_subscription->modifier_func(house_data, &time, sim_subscription);
+            usage_sum *= sim_subscription->modifier_func(house_data, &time, sim_subscription, sim_seed);
         } else {
             /* TODO Kevin: Invalid operator, error handling goes here */
         }
