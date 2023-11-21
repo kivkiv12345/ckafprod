@@ -19,7 +19,7 @@ typedef struct house_data_s {
     unsigned int num_adults;
     unsigned int num_children;
     unsigned int house_size_m2;
-    unsigned int no_electric_cars;
+    unsigned int num_electric_cars;
 
     /* NOTE: All data here should be immutable, so keeping the timestamp on the house,
         would prevent us from running the same house in multiple threads. */
