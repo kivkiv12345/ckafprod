@@ -1,18 +1,6 @@
 #pragma once
 
-#include <time.h>
-
-/**
- * @brief Stores both a UNIX timestamp and a 'datetime' representing the same timestamp.
- * 
- * We are generating both anyway, this is just a convenient way to pass both to modifiers,
- *  so they can pick which one they want.
- */
-typedef const struct convinient_time_s {
-    const time_t unix_timestamp_sec;
-    const struct tm timeinfo;
-} convinient_time_t;
-
+#include "timeutils.h"
 
 typedef struct house_data_s {
     unsigned int id;
@@ -24,50 +12,6 @@ typedef struct house_data_s {
     /* NOTE: All data here should be immutable, so keeping the timestamp on the house,
         would prevent us from running the same house in multiple threads. */
 } house_data_t;
-
-typedef struct month_range_s {
-    unsigned short start_month : 5;
-    unsigned short end_month : 5;
-} month_range_t;
-
-/* These #defines make it easy to subscribe to specific seasons */
-#define SPRING (month_range_t){.start_month = 2, .end_month = 4}
-#define SUMMER (month_range_t){.start_month = 5, .end_month = 7}
-#define AUTUMN (month_range_t){.start_month = 8, .end_month = 10}
-#define WINTER (month_range_t){.start_month = 11, .end_month = 1}
-#define ALL_YEAR (month_range_t){.start_month = 0, .end_month = 11}
-
-typedef struct day_range_s {
-    unsigned short start_day : 5;
-    unsigned short end_day : 5;
-} day_range_t;
-
-/* We leave it up to the simulation loop to handle months with fewer days than 32 (i.e -1) */
-#define ALL_MONTH (day_range_t){.start_day = 0, .end_day = -1}
-
-typedef struct hour_range_s {
-    unsigned short start_hour : 6;
-    unsigned short end_hour : 6;
-} hour_range_t;
-
-#define ALL_DAY (hour_range_t){.start_hour = 0, .end_hour = 23}
-
-/* TODO Kevin: Not sure where we will use these yet, 
-    but it fits nicely with our month_range_t */
-typedef enum {
-    JANUARY = 0,
-    FEBRUARY = 1,
-    MARCH = 2,
-    APRIL = 3,
-    MAY = 4,
-    JUNE = 5,
-    JULY = 6,
-    AUGUST = 7,
-    SEPTEMBER = 8,
-    OCTOBER = 9,
-    NOVEMBER = 10,
-    DECEMBER = 11
-} month_e;
 
 typedef enum {
     ADD = 0,
@@ -126,6 +70,7 @@ typedef const struct sim_subscription_s {
  * @brief Subscribe the provided modifier to the specified period
  * 
  * This is the primary entry-point for the user to affect the simulation.
+ * The time range arguments are made to be compatible with "timeutils.h"
  */
 #define SIM_SUBSCRIBE(_month_range, _day_range, _hour_range, _operation, _modifier_func, _metric, _sim_prio) \
 	__attribute__((section("sim_subscriptions" #_sim_prio #_metric))) \

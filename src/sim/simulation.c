@@ -4,7 +4,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "timeutils.h"
 #include "subscriptions.h"
+
+/* TODO Kevin: If we can find a good way to expose house_to_seed() and user_seed,
+    we can consider removing the "seed" parameter from modifier functions. */
 
 static unsigned int user_seed = 0;
 void seed_sim(unsigned int seed) {
@@ -51,12 +55,15 @@ void simulation_step(const house_data_t * const house_data, const time_t unix_ti
 
     /* Any randomization included in the simulation must be kept deterministic,
         as this allows us to keep the output consistent when rerunning the simulation. */
-    /* Using (user_seed + unix_timestamp_seconds + house_to_seed(house_data)) for the seed
-        should allow us to run multiple threads for the same house, but with different start times.
-        If any thread(s) were to catch up to the start time of any other thread, it should generate the same output. */
+    /* The initial seed is (user_seed + house_to_seed(house_data)),
+        the modifier may then add in any field(s) of the provided convinient_time_t, 
+        this should allow us to run multiple threads for the same house, but with different start times.
+        If any thread(s) were to catch up to the start time of any other thread, they should generate the same output. */
+    /* Modifiers can decide whether the randomized value should change based on .tm_year, .tm_mon, .tm_yday, (etc).
+        By adding said field(s) unto the seed, they can make random decisions on a yearly basis, for example. */
     /* Modifiers may want to perform their own further mutations on the seed,
         so they will stand apart from each other. */
-    unsigned int sim_seed = user_seed + unix_timestamp_seconds + house_to_seed(house_data);
+    unsigned int sim_seed = user_seed + house_to_seed(house_data);
 
     double power_usage_sum = 0;
     double water_usage_sum = 0;
@@ -72,27 +79,25 @@ void simulation_step(const house_data_t * const house_data, const time_t unix_ti
      */
     void inline apply_valid_modifier(sim_subscription_t * sim_subscription, double * _sumptr) {
 
-        /* This subscription includes a year-change */
-        if (sim_subscription->month_range.start_month > sim_subscription->month_range.end_month) {
-            if (sim_subscription->month_range.end_month < month && sim_subscription->month_range.start_month > month)
-                return;  // We are not subscribed to the current month.
-        } else {
-            if (sim_subscription->month_range.start_month > month || sim_subscription->month_range.end_month < month)
-                return;  // We are not subscribed to the current month.
-        }
+        if (!in_timeframe(month, sim_subscription->month_range.start_month, sim_subscription->month_range.end_month))
+            return;  // We are not subscribed to the current month.
 
-        if (sim_subscription->day_range.start_day > day || sim_subscription->day_range.end_day < day)
+        if (!in_timeframe(day, sim_subscription->day_range.start_day, sim_subscription->day_range.end_day))
             return;  // We are not subscribed to the current day.
 
-        if (sim_subscription->hour_range.start_hour > hour || sim_subscription->hour_range.end_hour < hour)
+        if (!in_timeframe(hour, sim_subscription->hour_range.start_hour, sim_subscription->hour_range.end_hour))
             return;  // We are not subscribed to the current hour.
-        
-        if (sim_subscription->operation == ADD) {
-            *_sumptr += sim_subscription->modifier_func(house_data, &time, sim_subscription, sim_seed);
-        } else if (sim_subscription->operation == MULTIPLY) {
-            *_sumptr *= sim_subscription->modifier_func(house_data, &time, sim_subscription, sim_seed);
-        } else {
-            /* TODO Kevin: Invalid operator, error handling goes here */
+
+        switch (sim_subscription->operation) {
+            case ADD:
+                *_sumptr += sim_subscription->modifier_func(house_data, &time, sim_subscription, sim_seed);
+                break;
+            case MULTIPLY:
+                *_sumptr *= sim_subscription->modifier_func(house_data, &time, sim_subscription, sim_seed);
+                break;
+            default:
+                /* TODO Kevin: Invalid operator, error handling goes here */
+                break;
         }
     }
 
@@ -131,10 +136,11 @@ void simulation_step(const house_data_t * const house_data, const time_t unix_ti
     SUBSCRIPTION_FOREACH_PRIO(SIM_PRIO1, HEAT, heat_usage_sum);
     SUBSCRIPTION_FOREACH_PRIO(SIM_PRIO2, HEAT, heat_usage_sum);
 
-    static int last_day = 0;
-    if (house_data->id == 1 && last_day != time.timeinfo.tm_yday) {
-        last_day = time.timeinfo.tm_yday;
-        printf("month=%d \tpower_sum=%f\theat_sum=%f\n", month, power_usage_sum, heat_usage_sum);
+#undef SUMPRINT
+#ifdef SUMPRINT
+    if (house_data->id == 1) {
+        printf("month=%d \thour=%d\tpower_sum=%f\theat_sum=%f\n", month, hour, power_usage_sum, heat_usage_sum);
     }
+#endif // SUMPRINT
 
 }

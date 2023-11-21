@@ -11,6 +11,7 @@ ckafprod_sources = [
 	'src/main.c',
 	'src/utils.c',
 	'src/json_parsing.c',
+	'src/sim/timeutils.c',
 	'src/sim/simulation.c',
 	'src/sim/house_worker.c',
 
