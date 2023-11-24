@@ -1,3 +1,5 @@
+#include "ckafprod_config.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -9,12 +11,21 @@
 #include <assert.h>
 #include <getopt.h>
 #include <ctype.h>
+#include <inttypes.h>
+
+#ifdef USE_VM
+#include <curl/curl.h>
+#endif
 
 #include "utils.h"
 #include "json_parsing.h"
+#include "victoria_metrics.h"
+
 #include "sim/simulation.h"
 #include "sim/house_worker.h"
 #include "sim/subscriptions.h"
+
+
 
 #define HOUSES_CLEANUP() \
     cJSON_Delete(houses_json); \
@@ -61,10 +72,26 @@ int main(int argc, char **argv) {
         {"help", no_argument, 0, 'h'},
         {"version", no_argument, 0, 'v'},
         {"seed", required_argument, 0, 's'},
+#ifdef USE_VM
+        {"vm-user", required_argument, 0, 'U'},
+        {"vm-pass", required_argument, 0, 'P'},
+        {"vm-port", required_argument, 0, 'p'},
+        {"vm-ip", required_argument, 0, 'i'},
+#endif
         {0, 0, 0, 0} // Indicates the end of options
     };
     
     unsigned should_exit = 0;
+
+#ifdef USE_VM
+    /* VM options */
+    /* TODO Kevin: Handle strings of any length. */
+    #define VM_STRINGARG_MAXLEN 255
+    char tmp_vm_username[VM_STRINGARG_MAXLEN] = {0};
+    char tmp_vm_password[VM_STRINGARG_MAXLEN] = {0};
+    uint16_t tmp_vm_port = 8428;
+    char tmp_vm_ip[VM_STRINGARG_MAXLEN] = {0};  // IP could also be domain name, so we can't assume max length.
+#endif
 
     while ((option = getopt_long(argc, argv, "hvs:", long_options, NULL)) != -1) {
         switch (option) {
@@ -82,9 +109,24 @@ int main(int argc, char **argv) {
                 printf("Seeding simulation with string: %s\n", optarg);
                 seed_sim(parse_seedstr(optarg));
                 break;
+#ifdef USE_VM
+            case 'U':
+                strncpy(tmp_vm_username, optarg, VM_STRINGARG_MAXLEN);
+                break;
+            case 'P':
+                strncpy(tmp_vm_password, optarg, VM_STRINGARG_MAXLEN);
+                break;
+            case 'p':
+                /* TODO Kevin: Check if port is numeric. */
+                tmp_vm_port = atoi(optarg);
+                break;
+            case 'i':
+                strncpy(tmp_vm_ip, optarg, VM_STRINGARG_MAXLEN);
+                break;
+#endif
             case '?':
                 // Error handling goes here
-                if (optopt == 's') {
+                if (optopt == 's' || optopt == 'U' || optopt == 'P' || optopt == 'p' || optopt == 'i') {
                     fprintf(stderr, "Option -%c requires an argument.\n", optopt);
                 } else if (isprint(optopt)) {
                     fprintf(stderr, "Unknown option `-%c'.\n", optopt);
@@ -118,6 +160,18 @@ int main(int argc, char **argv) {
     memset(&sigterm_action, 0, sizeof(sigterm_action));
     sigterm_action.sa_handler = &sigintHandler;
     sigterm_action.sa_flags = 0;
+#endif
+
+#ifdef USE_VM
+    curl_global_init(CURL_GLOBAL_ALL);
+    vm_init_args_t vm_args = {
+        .use_ssl = 0,
+        .port = tmp_vm_port,
+        .skip_verify = 1,
+        .username = tmp_vm_username,
+        .password = tmp_vm_password,
+        .server_ip = tmp_vm_ip,
+    };
 #endif
 
     char * houses_str = read_entire_house("houses.json");
@@ -192,12 +246,15 @@ int main(int argc, char **argv) {
         pthread_join(house_thread_pool[i], NULL);
     }
 
-    // Cleanup
+    {  // Cleanup
+        curl_global_cleanup();
+
 #if 0
-    for (int i = 0; i < num_houses; ++i) {
-        free(house_thread_pool[i]);
-    }
+        for (int i = 0; i < num_houses; ++i) {
+            free(house_thread_pool[i]);
+        }
 #endif
+    }
 
     return 0;
 

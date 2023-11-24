@@ -4,8 +4,9 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#include "house_worker.h"
 #include "simulation.h"
+#include "house_worker.h"
+#include "../victoria_metrics.h"
 
 #include "subscriptions.h"
 
@@ -35,9 +36,11 @@ void stop_house_simulations(void) {
     pthread_mutex_unlock(&house_mutex);
 }
 
-void *houseworker_thread(void *house_data_arg) {
+void *houseworker_thread(void *houseworker_thread_arg) {
     
-    house_data_t * house_data = (house_data_t*)house_data_arg;
+    houseworker_thread_args_t * houseworker_thread_args = (houseworker_thread_args_t*)houseworker_thread_arg;
+    house_data_t * house_data = (house_data_t*)houseworker_thread_args->house_data;
+    vm_init_args_t * vm_args = (vm_init_args_t*)houseworker_thread_args->vm_args;
     
 #undef THREADSAFE_STOPCHECK
 
@@ -52,7 +55,8 @@ void *houseworker_thread(void *house_data_arg) {
     // Use a loop to periodically check the house_condition without blocking
     while (stop_simulation_flag == 0) {
 
-        simulation_step(house_data, unix_timestamp_seconds);
+        usage_line_t usage_line;
+        simulation_step(house_data, unix_timestamp_seconds, &usage_line);
 
         unix_timestamp_seconds += SIM_STEP_SIZE;
 
@@ -76,6 +80,10 @@ void *houseworker_thread(void *house_data_arg) {
         }
 #endif
     }
+
+#ifdef USE_VM
+
+#endif
 
     // Event occurred, do something
     // printf("Event occurred in thread %ld (for house_id %d)\n", pthread_self(), house_data->id);

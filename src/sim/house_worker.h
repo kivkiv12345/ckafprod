@@ -10,9 +10,14 @@ extern volatile int stop_simulation_flag;
 
 void stop_house_simulations(void);
 
+typedef const struct {
+    house_data_t * house_data;
+    vm_init_args_t * vm_args;
+} houseworker_thread_args_t;
+
 /**
  * @brief Continuously simulates data for the provided house
  * 
  * @param house_data House data of type house_data_t*
  */
-void *houseworker_thread(void *house_data_arg);
+void *houseworker_thread(void *houseworker_thread_arg);

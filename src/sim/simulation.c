@@ -36,7 +36,7 @@ static unsigned int house_to_seed(const house_data_t  * house_data) {
     return sum;
 }
 
-void simulation_step(const house_data_t * const house_data, const time_t unix_timestamp_seconds) {
+void simulation_step(const house_data_t * const house_data, const time_t unix_timestamp_seconds, usage_line_t * usage_line_out) {
     
     // struct tm* timeinfo = localtime(&unix_timestamp_seconds);
 
@@ -142,5 +142,11 @@ void simulation_step(const house_data_t * const house_data, const time_t unix_ti
         printf("month=%d \thour=%d\tpower_sum=%f\theat_sum=%f\n", month, hour, power_usage_sum, heat_usage_sum);
     }
 #endif // SUMPRINT
+
+    *(usage_line_out) = {
+        .power_usage = power_usage_sum,
+        .water_usage = water_usage_sum,
+        .heat_usage = heat_usage_sum,
+    }
 
 }

@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#undef MODIFIER_PRINTS
+#define MODIFIER_PRINTS
 
 #ifdef MODIFIER_PRINTS
 #include <stdio.h>
@@ -119,12 +119,21 @@ static double ev_charging_modifier(const house_data_t * const house_data, convin
         }
     }
 
+#undef EV_PRINT
+#ifdef EV_PRINT
     const int print_house = house_data->id == 1;
     if (print_house)
         printf("%f\n", power_sum);
+#endif
     return power_sum;
 }
 
 /* TODO Kevin: EV charging should probably come after seasonal modifiers, priority-wise. */
 /* Assumes EVs are never charged at home between 14:00 and 04:00 */
 SIM_SUBSCRIBE(ALL_YEAR, ALL_MONTH, TIME_RANGE((hour_range_t){.start_hour = EV_EARLIEST_CHARGE_HOUR, .end_hour = EV_LATEST_CHARGE_HOUR}), ADD, ev_charging_modifier, POWER, SIM_PRIO0);
+
+/* TODO Kevin: Modifiers
+    - Hourly (day/night), sinusoidal value 
+    - Solar panels (Should be added to .json)
+    - Harsh weather
+*/

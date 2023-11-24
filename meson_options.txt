@@ -1,0 +1,1 @@
+option('use_vm', type : 'boolean', value: true, description: 'Support sending to Victoria Metrics. Requires libcurl')
