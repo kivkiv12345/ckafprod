@@ -7,6 +7,8 @@
 // TODO Kevin: Only needed for internal API, create a separate header file, where we can rely on curl.h
 #ifdef USE_VM
 #include <curl/curl.h>
+#else
+    #define CURLcode void
 #endif
 
 #include "sim/simulation.h"
@@ -19,14 +21,12 @@ typedef struct {
 #ifdef USE_VM
     CURL * curl;
     struct curl_slist * headers;
-#else
-    #define CURLcode void
 #endif
 
     char url[VM_URL_MAXLEN];
     char protocol[VM_PROTOCOL_MAXLEN];  // TODO Kevin: Can/Should we make 'protocol' part of the URL?
 
-    char buffer[VM_BUFFER_SIZE];
+    char * buffer;  /* Buffer is too large to be stack-allocated. */
     size_t buffer_usage;
 
     int push_retries;

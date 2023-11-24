@@ -18,6 +18,13 @@ size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata) {
 
 CURLcode vm_init(vm_init_args_t * args, vm_connection_t * vm_connection_out) {
 
+    /* Since curl requires us to have vm_cleanup() function anyway,
+        we may as well allocate our buffers on the heap.
+        This is probably also the only "correct" way to do this. */
+    if ((vm_connection_out->buffer = malloc(VM_BUFFER_SIZE)) == NULL) {
+        return CURLE_OUT_OF_MEMORY;
+    }
+
     /* Sadly, curl_easy_init() returns a heap-allocated object.
         So we must remember to free it later. */
     vm_connection_out->curl = curl_easy_init();
@@ -140,6 +147,10 @@ void vm_cleanup(vm_connection_t * vm_connection) {
     if (vm_connection->headers) {
         curl_slist_free_all(vm_connection->headers);
         vm_connection->headers = NULL;
+    }
+    if (vm_connection->buffer) {
+        free(vm_connection->buffer);
+        vm_connection->buffer = NULL;
     }
 #if 0
     curl_global_cleanup();  // Must only be called once, so we call it in main.c
