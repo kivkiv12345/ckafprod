@@ -143,10 +143,11 @@ void simulation_step(const house_data_t * const house_data, const time_t unix_ti
     }
 #endif // SUMPRINT
 
-    *(usage_line_out) = {
+    *usage_line_out = (usage_line_t){
         .power_usage = power_usage_sum,
         .water_usage = water_usage_sum,
         .heat_usage = heat_usage_sum,
-    }
+        .unix_timestamp_seconds = unix_timestamp_seconds,
+    };
 
 }

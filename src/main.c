@@ -201,7 +201,7 @@ int main(int argc, char **argv) {
 
     unsigned int num_houses = cJSON_GetArraySize(houses_json);
     pthread_t house_thread_pool[num_houses];
-    house_data_t house_data[num_houses];
+    houseworker_thread_args_t thread_args[num_houses];
 
     if (verbose) {
         printf("Found %d houses\n", num_houses);
@@ -214,14 +214,18 @@ int main(int argc, char **argv) {
 
         assert(i < num_houses);
 
-        int validation_result = housejson_parse(house_json, &house_data[i]);
+#ifdef USE_VM
+        thread_args[i].vm_args = &vm_args;
+#endif
+
+        int validation_result = housejson_parse(house_json, &(thread_args[i].house_data));
         if (validation_result != 0) {
             fprintf(stderr, "House JSON failed validation, result code %d\n", validation_result);
             HOUSES_CLEANUP();
             exit(validation_result);
         }
 
-        if ((pthread_create(&house_thread_pool[i], NULL, houseworker_thread, &house_data[i])) != 0) {
+        if ((pthread_create(&house_thread_pool[i], NULL, houseworker_thread, &thread_args[i])) != 0) {
             fprintf(stderr, "Failed to create house thread, number %d\n", i);
             HOUSES_CLEANUP();
             exit(9);
@@ -247,7 +251,9 @@ int main(int argc, char **argv) {
     }
 
     {  // Cleanup
+#ifdef USE_VM
         curl_global_cleanup();
+#endif
 
 #if 0
         for (int i = 0; i < num_houses; ++i) {

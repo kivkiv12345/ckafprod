@@ -9,6 +9,8 @@
 #include <curl/curl.h>
 #endif
 
+#include "sim/simulation.h"
+
 #define VM_PROTOCOL_MAXLEN 8
 #define VM_URL_MAXLEN 256
 #define VM_BUFFER_SIZE      10 * 1024 * 1024
@@ -17,6 +19,8 @@ typedef struct {
 #ifdef USE_VM
     CURL * curl;
     struct curl_slist * headers;
+#else
+    #define CURLcode void
 #endif
 
     char url[VM_URL_MAXLEN];
@@ -57,6 +61,8 @@ CURLcode vm_init(vm_init_args_t * args, vm_connection_t * vm_connection_out);
  * @param vm_connection Connection potentially used to push to VM
  */
 CURLcode vm_add(char * metric_line, vm_connection_t * vm_connection);
+CURLcode vm_add_usage_line(usage_line_t * usage_line, vm_connection_t * vm_connection);
+
 
 /**
  * @brief Manually transmit the current buffer to VM.
@@ -65,3 +71,12 @@ CURLcode vm_add(char * metric_line, vm_connection_t * vm_connection);
  * @return CURLcode Indicates whether the transmission was successful, after accounting for retries.
  */
 CURLcode vm_push(vm_connection_t * vm_connection);
+
+/**
+ * @brief Should be called after vm_init() when closing the connection VM.
+ * 
+ * Frees memory that was dynamically allocated by vm_init()
+ * 
+ * @param vm_connection Connection to close
+ */
+void vm_cleanup(vm_connection_t * vm_connection);

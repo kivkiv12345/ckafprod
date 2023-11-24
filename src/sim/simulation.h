@@ -11,6 +11,7 @@ typedef struct {
     double heat_usage;
 
     // size_t delta_seconds;
+    time_t unix_timestamp_seconds;
 } usage_line_t;
 
 void seed_sim(unsigned int seed);

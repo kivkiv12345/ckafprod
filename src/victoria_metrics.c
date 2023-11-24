@@ -10,6 +10,8 @@
 #include <curl/curl.h>
 #include <sys/utsname.h>
 
+#include "sim/simulation.h"
+
 size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata) {
     return size * nmemb;
 }
@@ -180,6 +182,25 @@ CURLcode vm_add(char * metric_line, vm_connection_t * vm_connection) {
     // // Unlock the buffer mutex
     // pthread_mutex_unlock(&buffer_mutex);
     return res;
+}
+
+CURLcode vm_add_usage_line(usage_line_t * usage_line, vm_connection_t * vm_connection) {
+    
+    char outstr[256] = {};
+
+    #define STRINGIFY(x) #x
+
+    char * power = STRINGIFY(POWER);
+    char * water = STRINGIFY(WATER);
+    char * heat = STRINGIFY(HEAT);
+
+    snprintf(outstr, 256,   "%s{} %f %"PRIu64"\n"
+                            "%s{} %f %"PRIu64"\n"
+                            "%s{} %f %"PRIu64"\n",  power, usage_line->power_usage, usage_line->unix_timestamp_seconds,
+                                                    water, usage_line->water_usage, usage_line->unix_timestamp_seconds,
+                                                    heat, usage_line->heat_usage, usage_line->unix_timestamp_seconds);
+
+    return vm_add(outstr, vm_connection);
 }
 
 /* TODO Kevin: Our equivalent to vm_add_param() should account for the 

@@ -39,9 +39,17 @@ void stop_house_simulations(void) {
 void *houseworker_thread(void *houseworker_thread_arg) {
     
     houseworker_thread_args_t * houseworker_thread_args = (houseworker_thread_args_t*)houseworker_thread_arg;
-    house_data_t * house_data = (house_data_t*)houseworker_thread_args->house_data;
+    house_data_t * house_data = (house_data_t*)&(houseworker_thread_args->house_data);
+#ifdef USE_VM
     vm_init_args_t * vm_args = (vm_init_args_t*)houseworker_thread_args->vm_args;
-    
+
+    vm_connection_t vm_connection;
+
+    if (vm_init(vm_args, &vm_connection) != CURLE_OK) {
+        fprintf(stderr, "House ID %d couldn't connect to Victoria Metrics.\n", house_data->id);
+    }
+#endif
+
 #undef THREADSAFE_STOPCHECK
 
 #ifdef THREADSAFE_STOPCHECK
@@ -57,8 +65,11 @@ void *houseworker_thread(void *houseworker_thread_arg) {
 
         usage_line_t usage_line;
         simulation_step(house_data, unix_timestamp_seconds, &usage_line);
-
+#ifdef USE_VM
+        vm_add_usage_line(&usage_line, &vm_connection);
+#endif
         unix_timestamp_seconds += SIM_STEP_SIZE;
+
 
 #ifdef THREADSAFE_STOPCHECK
         // Wait for the house_condition variable with a timeout of zero
@@ -82,7 +93,8 @@ void *houseworker_thread(void *houseworker_thread_arg) {
     }
 
 #ifdef USE_VM
-
+    vm_push(&vm_connection);  // Push the current buffer, even if it is only partially filled.
+    vm_cleanup(&vm_connection);
 #endif
 
     // Event occurred, do something

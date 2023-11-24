@@ -1,6 +1,10 @@
 #pragma once
 
+#include "ckafprod_config.h"
+
 #include <pthread.h>
+
+#include "../victoria_metrics.h"
 
 #if 0
 extern pthread_mutex_t house_mutex;
@@ -10,9 +14,12 @@ extern volatile int stop_simulation_flag;
 
 void stop_house_simulations(void);
 
-typedef const struct {
-    house_data_t * house_data;
+/* TODO Kevin: Consider whether we wanna go through the hassle and make these const. */
+typedef struct {
+    house_data_t house_data;
+#ifdef USE_VM
     vm_init_args_t * vm_args;
+#endif
 } houseworker_thread_args_t;
 
 /**
