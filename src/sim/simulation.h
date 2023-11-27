@@ -12,6 +12,7 @@ typedef struct {
 
     // size_t delta_seconds;
     time_t unix_timestamp_seconds;
+    house_data_t * house_data;
 } usage_line_t;
 
 void seed_sim(unsigned int seed);
