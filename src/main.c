@@ -65,6 +65,22 @@ static void sigintHandler(int signal) {
     // TODO Kevin: What more should be done here???
 }
 
+
+void usage(void) {
+	printf("usage: ckafprod [options]\n");
+	printf("\n");
+	printf("Options:\n");
+	printf(" -h --help\tPrint this help and exit\n");
+	printf(" -v --version\tPrint program version and exit\n");
+	printf(" -s --seed\tOverride default seed for the simulator\n");
+#ifdef USE_VM
+	printf(" -U --vm-user\tUsername for vmauth\n");
+	printf(" -P --vm-pass\tPassword for vmauth\n");
+	printf(" -p --vm-port\tOverwrite default port\n");
+	printf(" -i --vm-ip\tip/domain for the Victoria Metrics server, determines whether to connect.\n");
+#endif
+}
+
 int main(int argc, char **argv) {
 
     int option;
@@ -86,17 +102,17 @@ int main(int argc, char **argv) {
 #ifdef USE_VM
     /* VM options */
     /* TODO Kevin: Handle strings of any length. */
-    #define VM_STRINGARG_MAXLEN 255
-    char tmp_vm_username[VM_STRINGARG_MAXLEN] = {0};
-    char tmp_vm_password[VM_STRINGARG_MAXLEN] = {0};
+    char tmp_vm_username[VM_URL_MAXLEN] = {0};
+    char tmp_vm_password[VM_URL_MAXLEN] = {0};
     uint16_t tmp_vm_port = 8428;
-    char tmp_vm_ip[VM_STRINGARG_MAXLEN] = {0};  // IP could also be domain name, so we can't assume max length.
+    char tmp_vm_ip[VM_URL_MAXLEN] = {0};  // IP could also be domain name, so we can't assume max length.
+    int vm_connect = 0;  // Whether to connect to VM.
 #endif
 
     while ((option = getopt_long(argc, argv, "hvs:", long_options, NULL)) != -1) {
         switch (option) {
             case 'h':
-                printf("Help message\n");  // TODO Kevin: Write help message
+                usage();
                 should_exit = 1;
                 break;
             case 'v':
@@ -111,17 +127,18 @@ int main(int argc, char **argv) {
                 break;
 #ifdef USE_VM
             case 'U':
-                strncpy(tmp_vm_username, optarg, VM_STRINGARG_MAXLEN);
+                strncpy(tmp_vm_username, optarg, VM_URL_MAXLEN);
                 break;
             case 'P':
-                strncpy(tmp_vm_password, optarg, VM_STRINGARG_MAXLEN);
+                strncpy(tmp_vm_password, optarg, VM_URL_MAXLEN);
                 break;
             case 'p':
                 /* TODO Kevin: Check if port is numeric. */
                 tmp_vm_port = atoi(optarg);
                 break;
             case 'i':
-                strncpy(tmp_vm_ip, optarg, VM_STRINGARG_MAXLEN);
+                vm_connect = 1;
+                strncpy(tmp_vm_ip, optarg, VM_URL_MAXLEN);
                 break;
 #endif
             case '?':
@@ -144,6 +161,8 @@ int main(int argc, char **argv) {
         exit(0);
     }
 
+/* TODO Kevin: .json houses to load should probably be a positional argument.
+    Victoria Metrics IP could come afterwards. */
 #if 0  // Positional arguments can be handled here
     // Process positional arguments
     for (int i = optind; i < argc; ++i) {
@@ -168,8 +187,8 @@ int main(int argc, char **argv) {
         .use_ssl = 0,
         .port = tmp_vm_port,
         .skip_verify = 1,
-        .username = tmp_vm_username,
-        .password = tmp_vm_password,
+        .username = (strnlen(tmp_vm_username, VM_URL_MAXLEN) ? tmp_vm_username : NULL),
+        .password = (strnlen(tmp_vm_password, VM_URL_MAXLEN) ? tmp_vm_password : NULL),
         .server_ip = tmp_vm_ip,
     };
 #endif
@@ -215,7 +234,11 @@ int main(int argc, char **argv) {
         assert(i < num_houses);
 
 #ifdef USE_VM
-        thread_args[i].vm_args = &vm_args;
+        if (vm_connect) {
+            thread_args[i].vm_args = &vm_args;
+        } else {
+            thread_args[i].vm_args = NULL;
+        }
 #endif
 
         int validation_result = housejson_parse(house_json, &(thread_args[i].house_data));

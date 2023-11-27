@@ -18,6 +18,9 @@ size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata) {
 
 CURLcode vm_init(vm_init_args_t * args, vm_connection_t * vm_connection_out) {
 
+    if (args == NULL || vm_connection_out == NULL || args->server_ip == NULL)
+        return CURLE_BAD_FUNCTION_ARGUMENT;
+
     /* Since curl requires us to have vm_cleanup() function anyway,
         we may as well allocate our buffers on the heap.
         This is probably also the only "correct" way to do this. */
@@ -109,6 +112,9 @@ CURLcode vm_init(vm_init_args_t * args, vm_connection_t * vm_connection_out) {
 
 CURLcode vm_push(vm_connection_t * vm_connection) {
 
+    if (vm_connection->curl == NULL)
+        return CURLE_FAILED_INIT;
+
     // // Lock the buffer mutex
     // pthread_mutex_lock(&buffer_mutex);
     if (vm_connection->buffer_usage == 0) {
@@ -127,7 +133,7 @@ CURLcode vm_push(vm_connection_t * vm_connection) {
     }
     
     if (res != CURLE_OK) {
-        printf("Failed push: %s", curl_easy_strerror(res));
+        fprintf(stderr, "Failed push: %s", curl_easy_strerror(res));
     }
 
     vm_connection->buffer_usage = 0;
@@ -138,6 +144,12 @@ CURLcode vm_push(vm_connection_t * vm_connection) {
 }
 
 void vm_cleanup(vm_connection_t * vm_connection) {
+
+    /* This connection was never properly initialzed,
+        so there shouldn't be anything for us to clean up */
+    if (vm_connection->curl)
+        return;
+
     printf("vm push stopped\n");
     // Clean up
     if (vm_connection->curl) {
@@ -196,6 +208,10 @@ CURLcode vm_add(char * metric_line, vm_connection_t * vm_connection) {
 }
 
 CURLcode vm_add_usage_line(usage_line_t * usage_line, vm_connection_t * vm_connection) {
+
+    /* Use .curl to check if the connection has been initialized */
+    if (vm_connection->curl == NULL)
+        return CURLE_BAD_FUNCTION_ARGUMENT;
     
     char outstr[256] = {};
 

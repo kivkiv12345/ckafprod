@@ -43,10 +43,14 @@ void *houseworker_thread(void *houseworker_thread_arg) {
 #ifdef USE_VM
     vm_init_args_t * vm_args = (vm_init_args_t*)houseworker_thread_args->vm_args;
 
-    vm_connection_t vm_connection;
+    vm_connection_t vm_connection = {0};
 
-    if (vm_init(vm_args, &vm_connection) != CURLE_OK) {
-        fprintf(stderr, "House ID %d couldn't connect to Victoria Metrics.\n", house_data->id);
+    /* This outer if is only needed to avoid the error print.
+        We ought to handle a failed init. */
+    if (vm_args != NULL) {
+        if (vm_init(vm_args, &vm_connection) != CURLE_OK) {
+            fprintf(stderr, "House ID %d couldn't connect to Victoria Metrics.\n", house_data->id);
+        }
     }
 #endif
 
@@ -93,6 +97,7 @@ void *houseworker_thread(void *houseworker_thread_arg) {
     }
 
 #ifdef USE_VM
+    printf("Finishing up by flushing buffers to VM\n");
     vm_push(&vm_connection);  // Push the current buffer, even if it is only partially filled.
     vm_cleanup(&vm_connection);
 #endif
