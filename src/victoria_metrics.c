@@ -128,7 +128,7 @@ CURLcode vm_push(vm_connection_t * vm_connection) {
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, vm_connection->buffer);
 
     CURLcode res = curl_easy_perform(curl);  // Always try at least once, also tells us whether we should retry.
-    for (int tries = vm_connection->push_retries; tries > 0; tries--) {
+    for (int tries = vm_connection->push_retries; (tries > 0 && res != CURLE_OK); tries--) {
         res = curl_easy_perform(curl);
     }
     
@@ -202,6 +202,8 @@ CURLcode vm_add(char * metric_line, vm_connection_t * vm_connection) {
     strcpy(vm_connection->buffer + buffer_usage, metric_line);
     buffer_usage += line_len;
 
+    #undef buffer_usage
+
     // // Unlock the buffer mutex
     // pthread_mutex_unlock(&buffer_mutex);
     return res;
@@ -210,7 +212,10 @@ CURLcode vm_add(char * metric_line, vm_connection_t * vm_connection) {
 CURLcode vm_add_usage_line(usage_line_t * usage_line, vm_connection_t * vm_connection) {
 
     /* Use .curl to check if the connection has been initialized */
-    if (vm_connection->curl == NULL)
+    if (vm_connection == NULL || vm_connection->curl == NULL)
+        return CURLE_BAD_FUNCTION_ARGUMENT;
+
+    if (usage_line == NULL || usage_line->house_data == NULL)
         return CURLE_BAD_FUNCTION_ARGUMENT;
     
     char outstr[256] = {};
@@ -221,11 +226,12 @@ CURLcode vm_add_usage_line(usage_line_t * usage_line, vm_connection_t * vm_conne
     char * water = STRINGIFY(WATER);
     char * heat = STRINGIFY(HEAT);
 
-    snprintf(outstr, 256,   "%s{} %f %"PRIu64"\n"
-                            "%s{} %f %"PRIu64"\n"
-                            "%s{} %f %"PRIu64"\n",  power, usage_line->power_usage, usage_line->unix_timestamp_seconds,
-                                                    water, usage_line->water_usage, usage_line->unix_timestamp_seconds,
-                                                    heat, usage_line->heat_usage, usage_line->unix_timestamp_seconds);
+    snprintf(outstr, 256,   "%s{house_id=\"%u\"} %f %"PRIu64"\n"
+                            "%s{house_id=\"%u\"} %f %"PRIu64"\n"
+                            "%s{house_id=\"%u\"} %f %"PRIu64"\n",
+                            power,  usage_line->house_data->id, usage_line->power_usage,    usage_line->unix_timestamp_seconds,
+                            water,  usage_line->house_data->id, usage_line->water_usage,    usage_line->unix_timestamp_seconds,
+                            heat,   usage_line->house_data->id, usage_line->heat_usage,     usage_line->unix_timestamp_seconds);
 
     return vm_add(outstr, vm_connection);
 }

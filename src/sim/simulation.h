@@ -16,4 +16,4 @@ typedef struct {
 
 void seed_sim(unsigned int seed);
 
-void simulation_step(const house_data_t * const house_data, const time_t unix_timestamp_seconds, usage_line_t * usage_line_out);
+void simulation_step(house_data_t * const house_data, const time_t unix_timestamp_seconds, usage_line_t * usage_line_out);

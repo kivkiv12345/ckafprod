@@ -36,7 +36,7 @@ static unsigned int house_to_seed(const house_data_t  * house_data) {
     return sum;
 }
 
-void simulation_step(const house_data_t * const house_data, const time_t unix_timestamp_seconds, usage_line_t * usage_line_out) {
+void simulation_step(house_data_t * const house_data, const time_t unix_timestamp_seconds, usage_line_t * usage_line_out) {
     
     // struct tm* timeinfo = localtime(&unix_timestamp_seconds);
 
@@ -148,6 +148,7 @@ void simulation_step(const house_data_t * const house_data, const time_t unix_ti
         .water_usage = water_usage_sum,
         .heat_usage = heat_usage_sum,
         .unix_timestamp_seconds = unix_timestamp_seconds,
+        .house_data = house_data,
     };
 
 }
